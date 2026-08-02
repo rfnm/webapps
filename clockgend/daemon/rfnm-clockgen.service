@@ -1,0 +1,17 @@
+# RFNM Clock Gen (clockgend): HTTP face over the Si5510 OUT9 siggen sysfs knob.
+# radio:"none" infrastructure daemon - ENABLED at boot (like rfnm-ddns), never takes the
+# radio lease; the user-facing enable/disable is the OUT9 output, not this daemon.
+[Unit]
+Description=RFNM Clock Gen (Si5510 OUT9 siggen control on 127.0.0.1:7690 behind nginx /clkapi/)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/rfnm/apps/clockgen/clockgend --port 7690
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

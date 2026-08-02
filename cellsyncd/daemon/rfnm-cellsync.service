@@ -1,0 +1,19 @@
+# RFNM cell-sync: LTE-disciplined Si5510 reference (cellsyncd, RX-only).
+# Managed by appd (single LA9310 RX consumer - mutually exclusive with the other RF apps).
+# Survey candidate frequencies first: cellsyncd --scan 731.5,739.0,751.0,882.5
+[Unit]
+Description=RFNM LTE-disciplined oscillator (cellsyncd, freq via /rfnm/apps/cellsync/cellsync.conf)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/rfnm/apps/cellsync/cellsync.conf
+ExecStartPre=/bin/sleep 2
+ExecStart=/rfnm/apps/cellsync/cellsyncd --freq ${CELLSYNC_FREQ_MHZ} --tau ${CELLSYNC_TAU_S} $CELLSYNC_ARGS
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

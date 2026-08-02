@@ -1,0 +1,17 @@
+# RFNM Board I/O (iod): bottom-edge header GPIO visualize/toggle (phase 1).
+# radio:"none" infrastructure daemon - ENABLED at boot; guarded pins (bench RF switch)
+# are read-only by design. PWM3/GPT1/PPS features arrive with their DT/module phases.
+[Unit]
+Description=RFNM Board I/O (iod on 127.0.0.1:7691 behind nginx /ioapi/)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/rfnm/apps/boardio/iod --port 7691
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

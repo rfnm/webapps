@@ -1,0 +1,8 @@
+*.o
+aisd/aisd
+cellsyncd/cellsyncd
+cellsyncd/tools/dco_cal
+clockgend/clockgend
+iod/iod
+lorad/lorad
+vrtd/vrtd

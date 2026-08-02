@@ -1,0 +1,21 @@
+# RFNM AIS receiver (aisd, RX-only marine AIS: ch A 161.975 MHz / ch B 162.025 MHz).
+# Managed by appd (single LA9310 RX consumer - mutually exclusive with the other RF apps).
+# Installed disabled: appd starts it with `systemctl start`; it is never `systemctl enable`d
+# (matches rfnm-cellsync / rfnm-lora). Optional flags live in /rfnm/apps/ais/ais.conf as AIS_ARGS.
+[Unit]
+Description=RFNM AIS receiver (aisd, NMEA AIVDM on 127.0.0.1:7686 behind nginx /aisapi/)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/rfnm/apps/ais/ais.conf
+# built on the board like the other librfnm apps and deployed to /rfnm/apps/ais
+ExecStart=/rfnm/apps/ais/aisd $AIS_ARGS
+Restart=on-failure
+RestartSec=3
+Nice=-5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
