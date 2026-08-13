@@ -17,7 +17,7 @@ cross:
 	    CXX="$(CROSS)g++ --sysroot=$(RFNM_SYSROOT)" \
 	    ARCHFLAGS=-mcpu=cortex-a53 \
 	    ASIO_INC="-I$(LIBRFNM)/asio/asio/include -I$(RFNM_SYSROOT)/usr/local/include" \
-	    LDFLAGS="-L$(RFNM_SYSROOT)/usr/local/lib -Wl,-rpath-link,$(RFNM_SYSROOT)/usr/lib/aarch64-linux-gnu" \
+	    LDFLAGS="-L$(RFNM_SYSROOT)/usr/local/lib -L$(RFNM_SYSROOT)/usr/lib/aarch64-linux-gnu -Wl,-rpath-link,$(RFNM_SYSROOT)/usr/lib/aarch64-linux-gnu" \
 	    || exit 1; \
 	done
 
