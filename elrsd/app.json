@@ -1,0 +1,9 @@
+{ "id": "elrs", "title": "ELRS",
+  "desc": "ExpressLRS 2.4 GHz sniffer: LoRa demod SF5-SF8 (LI interleaver), FHSS follow from the binding phrase, RC/SYNC decode. RX-only by default; TX (loopback-tested) only when armed via the API and the board TX policy allows it.",
+  "unit": "rfnm-elrs", "radio": "rx", "settle_s": 2, "idle_stop_s": 180,
+  "api": { "port": 7694, "version": 1 },
+  "rf": { "prefix": "ELRS", "antenna": "sma_a", "gain": -24, "agc": false },
+  "config": [ { "key": "rate", "env": "ELRS_RATE", "restart": true, "choices": ["250hz", "500hz", "150hz", "50hz"] },
+              { "key": "window", "env": "ELRS_FC", "restart": true, "choices": ["2441.4e6", "2412.4e6", "2466.4e6"] } ],
+  "data": [ { "kind": "elrs-json", "proto": "http", "port": 7694, "dir": "out", "path": "/api/app/elrs/packets", "desc": "decoded RC/SYNC packet ring (JSON, poll)" } ],
+  "gui": { "panel": "elrs", "order": 45 } }
