@@ -2,7 +2,7 @@
 #   make            host build of every app (each has a native selftest - no board needed)
 #   make cross      aarch64 board build (needs RFNM_SYSROOT + a librfnm cross build, see
 #                   the SDK: ./rfnm-sdk build apps)
-APPS := aisd cellsyncd clockgend iod lorad vrtd
+APPS := aisd cellsyncd clockgend elrsd iod lorad vrtd
 CROSS ?= aarch64-linux-gnu-
 LIBRFNM ?= $(abspath ../librfnm)
 

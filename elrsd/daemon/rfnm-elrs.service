@@ -1,0 +1,22 @@
+# RFNM ELRS sniffer (elrsd). Managed by appd (single-owner radio lease, radio:"rx"):
+# started, never enabled. RX-only by default - TX exists in the binary but is OFF unless
+# /rfnm/board.conf allows it AND --tx 1 is in ELRS_ARGS AND a client arms it via POST /tx/arm.
+[Unit]
+Description=RFNM ExpressLRS 2.4 GHz sniffer (elrsd)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/rfnm/apps/elrs/app.conf
+EnvironmentFile=-/rfnm/apps/elrs/elrs.conf
+# optional, root-only: ELRS_BINDING_PHRASE / ELRS_UID (never checked in)
+EnvironmentFile=-/rfnm/apps/elrs/secret.env
+ExecStartPre=/bin/sleep 2
+ExecStart=/rfnm/apps/elrs/elrsd --port 7694 $ELRS_ARGS
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target
