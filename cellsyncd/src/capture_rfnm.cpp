@@ -50,6 +50,7 @@ struct rx_session::impl {
 	std::unique_ptr<rfnm::device> dev;
 	std::unique_ptr<rfnm::rx_stream> stream;
 	double rate_hz = 0;
+	std::string antenna;             // RF path name as last requested (open/retune)
 	uint64_t drop = 0;               // settle discard armed by retune(), in samples
 	uint64_t exp_ts = 0;             // stamp the next read should carry if contiguous
 	bool have_ts = false;
@@ -134,16 +135,25 @@ bool rx_session::open(double center_hz, double rate_hz, int gain_db, bool agc, c
 	}
 
 	p_->rate_hz = rate_hz;
+	p_->antenna = antenna;
 	p_->raw.resize(1 << 17);
 	p_->iq.resize(p_->raw.size() / 2);
 	return true;
 }
 
-bool rx_session::retune(double center_hz) {
+bool rx_session::retune(double center_hz, const std::string &antenna) {
 	if(!p_->stream) {
 		return false;
 	}
 	p_->dev->set_rx_channel_freq(0, (uint64_t)center_hz);
+	// The RF path is a channel field like the frequency, so a changed antenna rides the SAME
+	// apply on the running stream - no stream restart, no device reopen, and the settle discard
+	// below (already paid by every retune) covers the FE switch. Only touch it when the name
+	// actually changed: resolve_rx_path logs the path list, which is per-job news, not per-carrier.
+	if(!antenna.empty() && antenna != p_->antenna) {
+		p_->dev->set_rx_channel_path(0, resolve_rx_path(p_->dev->get_rx_channel(0), antenna));
+		p_->antenna = antenna;
+	}
 	rfnm_api_failcode err = p_->dev->apply(rfnm::rx_channel_apply_flags[0], true, 20000000);
 	if(err) {
 		fprintf(stderr, "cellsync: retune apply: %s\n", rfnm::device::failcode_to_string(err));

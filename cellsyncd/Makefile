@@ -12,7 +12,7 @@ CXXFLAGS ?= -O3 -g -std=c++17 -Wall -Wextra -pthread -fcx-limited-range -ftree-v
 CXXFLAGS += -I$(COMMON)
 LDFLAGS ?=
 
-OBJS = src/main.o src/lte_seq.o src/tracker.o src/steer.o src/rfnm_httpd.o src/selftest.o
+OBJS = src/main.o src/lte_seq.o src/lte_coding.o src/lte_wb.o src/lte_rrc.o src/tracker.o src/steer.o src/rfnm_httpd.o src/selftest.o
 
 ifeq ($(WITH_RFNM),1)
 CXXFLAGS += -DWITH_RFNM $(ASIO_INC)

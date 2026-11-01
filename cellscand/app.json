@@ -1,0 +1,9 @@
+{ "id": "cellscan", "title": "Cell Scan", "desc": "One-button LTE band sweep: probe B20/B8/B3/B1/B7 for in-band power, then capture a 15.36 MSps burst on every carrier above threshold and decode MIB/PCFICH/PDCCH/PDSCH/SIB1 offline - PCI, operator (from the PLMN), TAC, cellIdentity + eNB/sector, bandwidth, ports, frequency and receive power per cell. An explicit frequency list still works. RX-only, no lease at rest - the lease is held only while a sweep or scan runs.",
+  "unit": "rfnm-cellscan", "radio": "rx", "settle_s": 2, "idle_stop_s": 180,
+  "api": { "port": 7692 },
+  "rf": { "prefix": "CSCAN", "antenna": "sma_a", "gain": 12, "agc": false },
+  "config": [ { "key": "preset", "env": "CELLSCAN_PRESET", "restart": true,
+                "choices": ["b20", "b20+b8", "eu-macro", "last"] },
+              { "key": "antenna", "env": "CELLSCAN_ANTENNA", "restart": true,
+                "choices": ["auto", "embed", "sma_a"] } ],
+  "gui": { "panel": "cellscan", "order": 26 } }

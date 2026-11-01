@@ -1,0 +1,20 @@
+# RFNM cell scan: one-shot LTE cell survey (cellscand, RX-only).
+# Managed by appd (single LA9310 RX consumer - mutually exclusive with the other RF apps,
+# so it can never run at the same time as clocksync). The daemon starts idle and opens no
+# radio; a POST /scan captures per carrier and releases the device when the job finishes.
+[Unit]
+Description=RFNM LTE cell survey (cellscand)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/rfnm/apps/cellscan/cellscan.conf
+ExecStartPre=/bin/sleep 2
+ExecStart=/rfnm/apps/cellscan/cellscand --port 7692 --preset ${CELLSCAN_PRESET} --antenna ${CELLSCAN_ANTENNA} $CELLSCAN_ARGS
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

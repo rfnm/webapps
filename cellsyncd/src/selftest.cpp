@@ -9,6 +9,9 @@
 #include <random>
 
 #include "acquire.h"
+#include "lte_coding.h"
+#include "lte_rrc.h"
+#include "lte_wb.h"
 #include "feed_chain.h"
 #include "resampler.h"
 #include "steer.h"
@@ -541,6 +544,9 @@ int run_selftest() {
 	test_e2e();
 	test_sim();
 	test_gap();
+	g_fails += lte_coding_selftest(true);      // 36.212 coding layer
+	g_fails += lte_wb_selftest(true);          // wideband grid + CRS
+	g_fails += lte_rrc_selftest(true);         // 36.331 UPER head of SIB1
 	printf(g_fails ? "SELFTEST FAILED (%d)\n" : "SELFTEST OK\n", g_fails);
 	return g_fails ? 1 : 0;
 }
