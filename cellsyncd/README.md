@@ -89,6 +89,12 @@ TDD later). Frequency only — no time/phase output (1PPS from frame timing is a
 project). One EARFCN at a time (multi-cell on that carrier); EARFCN round-robin later.
 PBCH/MIB not decoded (N_RB comes from the CRS hypothesis test).
 
+Taking it further — decoding SIB1 for the cell's PLMN, `cellIdentity` and TAC, and
+SIB16 for a UTC-traceable 1PPS — is a planned extension, together with a
+verified off-air reference decode to regress against and the measured constraints
+that shape the implementation (full carrier bandwidth is mandatory; SIB1 needs
+several dB more than the MIB; the IQ convention depends on the transport).
+
 ## Build / run
 
 ```sh

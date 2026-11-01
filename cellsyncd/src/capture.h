@@ -24,12 +24,14 @@ typedef std::function<void(const cf *, size_t, uint64_t)> capture_cb;
 // and --scan visit many frequencies; per-visit open/close dominated their wall time
 // (~5 s/candidate) before this class existed. run() delivers samples until *stop and
 // returns false only when the stream dies (setup failure or 30 s of dry reads).
+// retune()'s optional `antenna` changes the RF path in the SAME apply (empty = keep the
+// current one), so a frequency-dependent antenna never costs a session reopen.
 class rx_session {
 public:
 	rx_session();
 	~rx_session();
 	bool open(double center_hz, double rate_hz, int gain_db, bool agc, const std::string &antenna);
-	bool retune(double center_hz);
+	bool retune(double center_hz, const std::string &antenna = "");
 	bool run(std::atomic<bool> &stop, std::atomic<uint64_t> &samples, const capture_cb &cb);
 
 private:
