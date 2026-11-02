@@ -20,18 +20,21 @@ LDFLAGS ?=
 LDLIBS = -pthread
 
 COMMON ?= ../common
-SRCS = src/main.cpp src/lora_phy.cpp src/receiver.cpp src/parse.cpp src/aes128.cpp src/selftest.cpp src/selfloop_offline.cpp
+SRCS = src/main.cpp src/lora_phy.cpp src/receiver.cpp src/parse.cpp src/meshcore.cpp src/meshcore_tx.cpp src/meshtastic_tx.cpp src/sha256.cpp src/aes128.cpp src/selftest.cpp src/selftest_meshcore.cpp src/selfloop_offline.cpp
 ifeq ($(WITH_RFNM),1)
 CXXFLAGS += -DWITH_RFNM=1 $(ASIO_INC)
 SRCS += src/capture_rfnm.cpp src/capture_selfloop.cpp
 LDLIBS += -lrfnm
 endif
 
-OBJS = $(SRCS:.cpp=.o) src/rfnm_httpd.o
+OBJS = $(SRCS:.cpp=.o) src/rfnm_httpd.o src/vendor/monocypher.o src/vendor/monocypher-ed25519.o
 HDRS = $(wildcard src/*.h)
 
 lorad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+src/vendor/%.o: src/vendor/%.c
+	$(CC) -O2 -Wall $(ARCHFLAGS) -c -o $@ $<
 
 %.o: %.cpp $(HDRS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

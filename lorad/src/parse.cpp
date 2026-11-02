@@ -87,6 +87,19 @@ static const uint8_t DEFAULT_PSK[16] = {
 	0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59, 0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0x01,
 };
 
+static bool g_chan_set = false;
+static uint8_t g_chan_hash = 0, g_chan_psk[16];
+
+void meshtastic_set_channel(uint8_t hash, const uint8_t psk[16]) {
+	g_chan_hash = hash;
+	memcpy(g_chan_psk, psk, 16);
+	g_chan_set = true;
+}
+
+static const uint8_t *psk_for(uint8_t chan) {
+	return g_chan_set && chan == g_chan_hash ? g_chan_psk : DEFAULT_PSK;
+}
+
 static const char *portnum_name(unsigned port) {
 	switch(port) {
 	case 1: return "TEXT";
@@ -171,7 +184,7 @@ static bool scan_data_proto(const uint8_t *d, size_t len, unsigned &port, std::v
 // accept only clean text for inline display: no control chars (except tab/newline/CR)
 // and valid UTF-8 - a mis-decrypt that happens to protobuf-parse must not leak raw
 // bytes into the /packets JSON (json_escape only handles quotes/backslash/<0x20)
-static bool clean_text(const std::vector<uint8_t> &v) {
+bool clean_text(const std::vector<uint8_t> &v) {
 	if(v.empty()) {
 		return false;
 	}
@@ -288,7 +301,7 @@ std::string meshtastic_info(const std::vector<uint8_t> &p) {
 		memset(nonce, 0, sizeof(nonce));
 		memcpy(nonce, &p[8], 4);
 		memcpy(nonce + 8, &p[4], 4);
-		aes128 aes(DEFAULT_PSK);
+		aes128 aes(psk_for(p[13]));
 		aes.ctr_crypt(nonce, body.data(), body.size());
 
 		unsigned port = 0;
@@ -337,7 +350,7 @@ mesh_fields meshtastic_decode(const std::vector<uint8_t> &p) {
 		memset(nonce, 0, sizeof(nonce));
 		memcpy(nonce, &p[8], 4);
 		memcpy(nonce + 8, &p[4], 4);
-		aes128 aes(DEFAULT_PSK);
+		aes128 aes(psk_for(p[13]));
 		aes.ctr_crypt(nonce, body.data(), body.size());
 
 		unsigned port = 0;

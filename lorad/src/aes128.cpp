@@ -77,6 +77,51 @@ void aes128::encrypt_block(const uint8_t in[16], uint8_t out[16]) const {
 	memcpy(out, s, 16);
 }
 
+// FIPS-197 InvCipher. Used only for MeshCore group traffic, which is AES-128-ECB. The
+// inverse S-box is derived from SBOX once, so there is a single table to trust.
+static inline uint8_t gmul(uint8_t a, int b) {
+	uint8_t r = 0;
+	for(; b; b >>= 1) {
+		if(b & 1) {
+			r ^= a;
+		}
+		a = xtime(a);
+	}
+	return r;
+}
+
+void aes128::decrypt_block(const uint8_t in[16], uint8_t out[16]) const {
+	static const struct inv_sbox {
+		uint8_t t[256];
+		inv_sbox() {
+			for(int i = 0; i < 256; i++) {
+				t[SBOX[i]] = (uint8_t)i;
+			}
+		}
+	} INV;
+	static const int INV_SHIFT[16] = { 0, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3 };
+	uint8_t s[16], t[16];
+	for(int i = 0; i < 16; i++) {
+		s[i] = (uint8_t)(in[i] ^ rk_[160 + i]);
+	}
+	for(int round = 9; round >= 0; round--) {
+		for(int i = 0; i < 16; i++) {
+			t[i] = (uint8_t)(INV.t[s[INV_SHIFT[i]]] ^ rk_[16 * round + i]);
+		}
+		if(round == 0) {
+			memcpy(s, t, 16);
+			break;
+		}
+		for(int c = 0; c < 4; c++) {
+			const uint8_t *a = t + 4 * c;
+			for(int r = 0; r < 4; r++) {
+				s[4 * c + r] = (uint8_t)(gmul(a[r], 14) ^ gmul(a[(r + 1) & 3], 11) ^ gmul(a[(r + 2) & 3], 13) ^ gmul(a[(r + 3) & 3], 9));
+			}
+		}
+	}
+	memcpy(out, s, 16);
+}
+
 void aes128::ctr_crypt(const uint8_t nonce[16], uint8_t *data, size_t len) const {
 	uint8_t ctr[16], ks[16];
 	memcpy(ctr, nonce, 16);
@@ -92,6 +137,56 @@ void aes128::ctr_crypt(const uint8_t nonce[16], uint8_t *data, size_t len) const
 			}
 		}
 	}
+}
+
+aes256::aes256(const uint8_t key[32]) {
+	memcpy(rk_, key, 32);
+	uint8_t rcon = 1;
+	for(int i = 8; i < 60; i++) {
+		uint8_t t[4];
+		memcpy(t, rk_ + 4 * (i - 1), 4);
+		if(i % 8 == 0) {
+			uint8_t f = t[0];
+			t[0] = (uint8_t)(SBOX[t[1]] ^ rcon);
+			t[1] = SBOX[t[2]];
+			t[2] = SBOX[t[3]];
+			t[3] = SBOX[f];
+			rcon = xtime(rcon);
+		} else if(i % 8 == 4) {
+			for(int k = 0; k < 4; k++) {
+				t[k] = SBOX[t[k]];
+			}
+		}
+		for(int k = 0; k < 4; k++) {
+			rk_[4 * i + k] = (uint8_t)(rk_[4 * (i - 8) + k] ^ t[k]);
+		}
+	}
+}
+
+void aes256::encrypt_block(const uint8_t in[16], uint8_t out[16]) const {
+	static const int ROW[16] = { 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11 };
+	uint8_t s[16], t[16];
+	for(int i = 0; i < 16; i++) {
+		s[i] = (uint8_t)(in[i] ^ rk_[i]);
+	}
+	for(int r = 1; r <= 14; r++) {
+		for(int i = 0; i < 16; i++) {
+			t[i] = SBOX[s[ROW[i]]];
+		}
+		if(r < 14) {
+			for(int c = 0; c < 16; c += 4) {
+				uint8_t a = t[c], b = t[c + 1], d = t[c + 2], e = t[c + 3], x = (uint8_t)(a ^ b ^ d ^ e);
+				t[c] = (uint8_t)(a ^ x ^ xtime((uint8_t)(a ^ b)));
+				t[c + 1] = (uint8_t)(b ^ x ^ xtime((uint8_t)(b ^ d)));
+				t[c + 2] = (uint8_t)(d ^ x ^ xtime((uint8_t)(d ^ e)));
+				t[c + 3] = (uint8_t)(e ^ x ^ xtime((uint8_t)(e ^ a)));
+			}
+		}
+		for(int i = 0; i < 16; i++) {
+			s[i] = (uint8_t)(t[i] ^ rk_[16 * r + i]);
+		}
+	}
+	memcpy(out, s, 16);
 }
 
 } // namespace lorad

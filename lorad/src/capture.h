@@ -3,12 +3,26 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <vector>
 #include "fft.h"
 
 namespace lorad {
+
+// One burst handed to the capture loop, which owns the device. RX and TX share SMA-A and the
+// driver has no concurrent plan at 2 MSps, so the loop closes RX, airs the burst, reopens RX.
+struct tx_request {
+	std::mutex m;
+	std::condition_variable cv;
+	bool pending = false, done = false, ok = false;
+	std::string err;
+	std::vector<int16_t> iq;
+	int power_dbm = 0;
+};
 
 // Opens the local-transport device, streams RX channel 0 at rate_hz centered on
 // center_hz and calls cb with float IQ until stop is set. gain_db is clamped to the
@@ -18,7 +32,7 @@ namespace lorad {
 // on any setup failure (already logged to stderr).
 bool run_capture(double center_hz, double rate_hz, int gain_db, bool agc, const std::string &antenna,
                  std::atomic<bool> &stop, std::atomic<uint64_t> &samples,
-                 const std::function<void(const cf *, size_t)> &cb);
+                 const std::function<void(const cf *, size_t)> &cb, tx_request *tx = nullptr);
 
 // TX->RX self-loopback: transmit a synthesized Meshtastic LongFast frame on the RFNM TX
 // and decode it on the RX (board-coupled), the LoRa carrier at +offset_hz from the LO.

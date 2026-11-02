@@ -46,7 +46,7 @@ static void add_noise(std::vector<cf> &iq, float sigma, std::mt19937 &rng) {
 // frame IQ embedded in noise with lead/tail padding, fed to a receiver in chunks
 // (chunked feeding exercises the frozen-candidate resume path)
 static std::vector<rx_packet> run_rf(const std::vector<cf> &frame_iq, uint8_t sync, unsigned sf_mask,
-                                     bool bw250, float noise_sigma, float cfo_bins_over_n, int sf_for_cfo,
+                                     double bw_hz, float noise_sigma, float cfo_bins_over_n, int sf_for_cfo,
                                      std::mt19937 &rng, size_t lead = 1377, size_t tail_syms_n = 8192) {
 	std::vector<cf> iq(lead, cf(0, 0));
 	iq.insert(iq.end(), frame_iq.begin(), frame_iq.end());
@@ -62,7 +62,7 @@ static std::vector<rx_packet> run_rf(const std::vector<cf> &frame_iq, uint8_t sy
 	add_noise(iq, noise_sigma, rng);
 
 	std::vector<rx_packet> out;
-	channel_receiver rx(868.1e6, sync, sf_mask, bw250, [&](const rx_packet &p) { out.push_back(p); });
+	channel_receiver rx(868.1e6, sync, sf_mask, bw_hz, [&](const rx_packet &p) { out.push_back(p); });
 	const size_t chunk = 4096;
 	for(size_t i = 0; i < iq.size(); i += chunk) {
 		rx.feed(iq.data() + i, std::min(chunk, iq.size() - i));
@@ -201,7 +201,7 @@ static void test_iq_cases() {
 		std::vector<uint8_t> pl = test_payload(c.len, c.sf);
 		chirp_mod mod(c.sf);
 		std::vector<cf> frame = mod.frame(p, encode_frame(p, pl.data(), (int)pl.size()));
-		auto pkts = run_rf(frame, 0x34, 0x1F80, false, c.sigma, c.cfo, c.sf, rng);
+		auto pkts = run_rf(frame, 0x34, 0x1F80, 125e3, c.sigma, c.cfo, c.sf, rng);
 		bool ok = pkts.size() == 1 && pkts[0].sf == c.sf && pkts[0].crc_ok && pkts[0].payload == pl;
 		char detail[64];
 		snprintf(detail, sizeof(detail), "%zu pkts", pkts.size());
@@ -222,7 +222,7 @@ static void test_iq_multiframe() {
 	iq.resize(iq.size() + 3 * 128, cf(0, 0)); // inter-frame gap
 	std::vector<cf> f2 = mod.frame(p, encode_frame(p, b.data(), (int)b.size()));
 	iq.insert(iq.end(), f2.begin(), f2.end());
-	auto pkts = run_rf(iq, 0x34, 0x1F80, false, 0.05f, 0, 7, rng);
+	auto pkts = run_rf(iq, 0x34, 0x1F80, 125e3, 0.05f, 0, 7, rng);
 	check(pkts.size() == 2 && pkts[0].payload == a && pkts[1].payload == b && pkts[0].crc_ok && pkts[1].crc_ok, "iq_two_frames");
 }
 
@@ -236,7 +236,7 @@ static void test_iq_sync_reject() {
 	std::vector<uint8_t> pl = test_payload(20, 9);
 	chirp_mod mod(8);
 	std::vector<cf> frame = mod.frame(p, encode_frame(p, pl.data(), (int)pl.size()));
-	auto pkts = run_rf(frame, 0x34, 0x1F80, false, 0.05f, 0, 8, rng);
+	auto pkts = run_rf(frame, 0x34, 0x1F80, 125e3, 0.05f, 0, 8, rng);
 	check(pkts.empty(), "iq_sync_reject");
 }
 
@@ -257,7 +257,7 @@ static void test_ddc_e2e() {
 	add_noise(cap, 0.02f, rng);
 
 	std::vector<rx_packet> pkts;
-	channel_receiver rx(868.1e6, 0x34, 0x1F80, false, [&](const rx_packet &pk) { pkts.push_back(pk); });
+	channel_receiver rx(868.1e6, 0x34, 0x1F80, 125e3, [&](const rx_packet &pk) { pkts.push_back(pk); });
 	ddc dc(2e6, 125e3, 300e3);
 	std::vector<cf> base;
 	const size_t chunk = 65536;
@@ -311,7 +311,7 @@ static void test_us915_lorawan_e2e() {
 		std::vector<std::unique_ptr<channel_receiver>> rxs;
 		for(int j = 0; j < 8; j++) {
 			dcs.emplace_back(new ddc(2e6, 125e3, freqs[j] - center));
-			rxs.emplace_back(new channel_receiver(freqs[j], 0x34, 0x0780, false, [&](const rx_packet &pk) { pkts.push_back(pk); }));
+			rxs.emplace_back(new channel_receiver(freqs[j], 0x34, 0x0780, 125e3, [&](const rx_packet &pk) { pkts.push_back(pk); }));
 		}
 		std::vector<cf> base;
 		const size_t chunk = 65536;
@@ -351,7 +351,7 @@ static void test_us915_meshtastic_e2e() {
 	add_noise(cap, 0.02f, rng);
 
 	std::vector<rx_packet> pkts;
-	channel_receiver rx(906.875e6, 0x2B, 1u << 11, true, [&](const rx_packet &pk) { pkts.push_back(pk); });
+	channel_receiver rx(906.875e6, 0x2B, 1u << 11, 250e3, [&](const rx_packet &pk) { pkts.push_back(pk); });
 	ddc dc(2e6, 250e3, 0.0);
 	std::vector<cf> base;
 	const size_t chunk = 65536;
@@ -467,11 +467,13 @@ static void test_meshtastic_e2e() {
 	p.sync = 0x2B;
 	chirp_mod mod(11);
 	std::vector<cf> frame = mod.frame(p, encode_frame(p, pkt.data(), (int)pkt.size()));
-	auto pkts = run_rf(frame, 0x2B, 1u << 11, true, 0.1f, 0.8f, 11, rng);
+	auto pkts = run_rf(frame, 0x2B, 1u << 11, 250e3, 0.1f, 0.8f, 11, rng);
 	bool ok = pkts.size() == 1 && pkts[0].crc_ok && pkts[0].payload == pkt;
 	std::string info = ok ? meshtastic_info(pkts[0].payload) : "";
 	check(ok && info.find("\"mesh e2e\"") != std::string::npos, "meshtastic_e2e", info.c_str());
 }
+
+void run_meshcore_selftest(void (*check_fn)(bool, const char *, const char *)); // selftest_meshcore.cpp
 
 int run_selftest() {
 	printf("lorad selftest\n");
@@ -488,6 +490,7 @@ int run_selftest() {
 	test_meshtastic_parse();
 	test_meshtastic_position();
 	test_meshtastic_e2e();
+	run_meshcore_selftest(check);
 	printf(g_fails ? "SELFTEST FAILED: %d case(s)\n" : "SELFTEST OK\n", g_fails);
 	return g_fails ? 1 : 0;
 }

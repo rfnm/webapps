@@ -16,7 +16,7 @@ by `appd` from each app's manifest — see the `webgui` repo's `API.md` for the 
 | `cellsyncd/` | `cellsyncd` | LTE-disciplined oscillator: acquires and tracks surrounding macro cells (PSS/SSS + CRS phase, RX-only, no SIM) and steers the board's Si5510 reference DCO in 0.1 ppb steps — GPSDO-grade frequency without a sky view. |
 | `clockgend/` | `clockgend` | Si5510 OUT9 signal generator on the REF CLK OUT connector, driven through the kernel's `rfnm_set_siggen_freq` sysfs knob (1 MHz–200.099 MHz on a 1 kHz grid). Also reports external-reference / reference-lock status. |
 | `iod/` | `iod` | Board I/O header GPIO daemon: drives the motherboard bottom-edge header pins through the kernel GPIO chardev uapi v2 (no libgpiod), including runtime pinmux between a pad's primary function and GPIO. |
-| `lorad/` | `lorad` | RX-only LoRa sniffer: LoRaWAN uplink channels or the Meshtastic LongFast preset (eu868/us915 band plans), multi-channel channelizer + LoRa PHY demod, LoRaWAN/Meshtastic frame parsing (incl. AES where keys are known). |
+| `lorad/` | `lorad` | LoRa sniffer with optional mesh TX, off by default: LoRaWAN uplink channels, the Meshtastic LongFast preset or the MeshCore narrow preset (eu868/us915 band plans), multi-channel channelizer + LoRa PHY demod, LoRaWAN/Meshtastic/MeshCore frame parsing (incl. AES where keys are known). |
 | `vrtd/` | `vrtd` | VITA 49.2 Ethernet bridge: RX export as VRT signal-data + context packets over UDP, TX ingest (the RFNM as a remote VRT exciter), and 49.2 command/ack control. |
 
 Each app's own README documents its signal chain, API and selftest coverage.

@@ -40,19 +40,19 @@ uint16_t payload_crc(const uint8_t *data, int len) {
 }
 
 uint8_t hamming_encode(uint8_t nibble, int cr) {
-	int d3 = (nibble >> 3) & 1, d2 = (nibble >> 2) & 1, d1 = (nibble >> 1) & 1, d0 = nibble & 1;
-	uint8_t cw;
+	// The real air format: data bits LSB first at the top of the codeword, then parity. A
+	// self-consistent variant passes every loopback test and decodes no real radio at all.
+	int b3 = (nibble >> 3) & 1, b2 = (nibble >> 2) & 1, b1 = (nibble >> 1) & 1, b0 = nibble & 1;
+	int data = (b0 << 3) | (b1 << 2) | (b2 << 1) | b3;
 	if(cr == 1) {
-		cw = (uint8_t)((nibble << 1) | (d3 ^ d2 ^ d1 ^ d0));
-	} else {
-		int p0 = d3 ^ d2 ^ d1;
-		int p1 = d3 ^ d2 ^ d0;
-		int p2 = d3 ^ d1 ^ d0;
-		int p3 = d2 ^ d1 ^ d0;
-		int parity = (p0 << 3) | (p1 << 2) | (p2 << 1) | p3;
-		cw = (uint8_t)((nibble << cr) | (parity >> (4 - cr)));
+		return (uint8_t)((data << 1) | (b0 ^ b1 ^ b2 ^ b3));
 	}
-	return cw;
+	int p0 = b0 ^ b1 ^ b2;
+	int p1 = b1 ^ b2 ^ b3;
+	int p2 = b0 ^ b1 ^ b3;
+	int p3 = b0 ^ b2 ^ b3;
+	int parity = (p0 << 3) | (p1 << 2) | (p2 << 1) | p3;
+	return (uint8_t)((data << cr) | (parity >> (4 - cr)));
 }
 
 int hamming_decode(uint8_t codeword, int cr) {

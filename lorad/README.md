@@ -1,16 +1,71 @@
-# lorad — LoRa / LoRaWAN / Meshtastic sniffer
+# lorad — LoRa / LoRaWAN / Meshtastic / MeshCore sniffer
 
-RX-only LoRa sniffer daemon for the RFNM Blue: one wideband capture over the librfnm
+LoRa sniffer and optional mesh node daemon for the RFNM Blue. It listens by default; MeshCore and Meshtastic transmit are off unless deliberately enabled, see below. Receive side: one wideband capture over the librfnm
 local transport, a polyphase channelizer, per-channel LoRa PHY demodulators, and frame
-parsers for LoRaWAN and Meshtastic (including AES-128 payload decryption where the key is
-known — e.g. the Meshtastic default channel key).
+parsers for LoRaWAN, Meshtastic and MeshCore (including AES-128 payload decryption where
+the key is public — the Meshtastic default channel key, the MeshCore Public channel key).
 
 Modes and band plans:
 
 - `--mode lorawan` — the LoRaWAN uplink channels of the selected `--region` (default)
 - `--mode meshtastic` — the Meshtastic LongFast preset for the region
+- `--mode meshcore` — the MeshCore narrow preset for the region, see below
 - `--region eu868|us915` (default `eu868`); for us915 LoRaWAN, `--subband N` (1..8)
 - Manual overrides for any plan: `--center HZ`, `--freqs f1,f2,..` (MHz), `--sync 0xNN`
+
+## MeshCore
+
+Parameters as of MeshCore commit `81dbae5` (2026-10-15) and the app preset list at
+`api.meshcore.nz/api/v1/config`:
+
+| | eu868 | us915 |
+|---|---|---|
+| frequency | 869.618 MHz | 910.525 MHz |
+| bandwidth | 62.5 kHz | 62.5 kHz |
+| scanned SF | 7 and 8 | 7 |
+| coding rate | from the PHY header | from the PHY header |
+| sync word | 0x12 (SX126x register value 0x1424) | 0x12 |
+| preamble | 32 symbols at SF <= 8, 16 above | same |
+
+EU868 SF8 covers the firmware default (CR 4/5) and the "EU/UK (Narrow)" app preset (CR 4/8);
+SF7 covers the presets that share 869.618 MHz (Netherlands, Hungary, Slovakia, Portugal).
+Other networks: `--freqs` keeps SF7/8, e.g. `--freqs 869.432` for Czech Narrow. BW 250 kHz
+presets are not covered by this mode. In EU868 the channel overlaps Meshtastic LongFast, a
+frame survives that overlap through its dechirp gain unless LongFast is much stronger.
+
+What is decoded:
+
+- Every frame: route and payload type, transport codes, path hashes and hop count, and the
+  8-byte packet hash that identifies relayed copies of one flood.
+- Adverts: public key prefix, role, name, timestamp, position. **Signatures are not
+  verified**: name and position are what the frame claims.
+- Default Public channel: sender and text, MAC checked. Its key is public, it ships in the
+  firmware source. The sender name is part of the message text and unverified by design.
+- Plaintext routing fields of the rest: source and destination hashes, ANON_REQ sender key,
+  ACK checksum, CONTROL sub-type.
+
+What is left out on purpose: private messages, requests, responses, returned paths and other
+group channels stay ciphertext. No attempt is made to break them. Hashtag channels, whose key
+derives from the name, are not tried either. A frame failing the LoRa CRC gets no structured
+decode.
+
+Each `/packets` entry of a good frame carries a `meshcore` object, fields in
+`meshcore_json()`. `board/app_lora.js` and `board/app.json` are the panel and the manifest
+with this mode added; this repo did not hold them before, they are board-side files.
+
+### Why this mode has its own timing path
+
+At 62.5 kHz a 10 ppm crystal is +-8.7 kHz, 14 % of the channel, and the same crystal slips the
+symbol clock by about one sample over a 130-byte frame. The critically sampled path of the
+other modes loses such frames. So here the DDC stops at 4 x BW with a cutoff of 0.65 x BW and
+the receiver reads the data at 1/4 sample resolution: the fractional carrier offset comes from
+the preamble phase, its integer part from the sync word, the timing from a search over the
+first symbols with the payload CRC as arbiter, and the clock slip follows from the carrier
+offset. The LO sits 250 kHz below the channel to keep zero-IF DC out of it. `lorawan` and
+`meshtastic` keep `os = 1` and run the same arithmetic as before.
+
+Clock slip compensation assumes the node derives carrier and chirp clock from one crystal, and
+that the RFNM's LO and sample clock share its reference. Neither is tested on air yet.
 
 ## HTTP API
 
@@ -22,7 +77,9 @@ JSON over HTTP on `127.0.0.1:7684`, published by the on-board nginx as `/api/app
 
 ```sh
 make                      # host build, no librfnm needed
-./lorad --selftest        # deterministic, hardware-free PHY + parser suite
+./lorad --selftest        # deterministic, hardware-free PHY + parser suite. The MeshCore
+                          # part uses real packets and their expected values from the
+                          # test suite of github.com/michaelhart/meshcore-decoder (MIT)
 ./lorad --bench 5         # CPU-cost proxy through the full channelizer + receiver
 ```
 
@@ -36,3 +93,19 @@ Easy path: `./rfnm-sdk build apps` from [github.com/rfnm/sdk](https://github.com
 Deploys to `/rfnm/apps/lora/` and runs as a systemd service (`rfnm-lora`). It is an RX
 radio app: appd starts it when it holds the radio lease; antenna/gain come from appd's
 per-app `/rf` settings, mode/region from the manifest-declared config keys.
+
+## MeshCore transmit
+
+Off by default, and it never runs by accident. Sending needs all of: `TX_ALLOWED=1` in
+`/rfnm/board.conf`, `--tx 1` on the daemon, and a time-limited `POST /tx/arm`. Power is capped at
+compile time (`LORAD_TX_HARD_CAP_DBM`, 20 dBm, uncalibrated), airtime at 10 % per hour, and each send waits for a
+quiet channel first.
+
+RX and TX share SMA-A. The driver has no concurrent TX+RX plan at 2 MSps, so the capture loop closes
+RX, airs one timed burst and reopens RX. A TX-only 2 MSps plan lands on the same 128 MHz DCS as RX,
+so the swap needs no reclock.
+
+Floods carry a region scope, because repeaters drop codes of regions they do not know. Set it with
+`--scope` to match your region; the default is `#de-nord`.
+
+Test without a radio: `--render-iq FILE --render-text TEXT` writes the waveform, `--iqfile FILE` decodes it.
