@@ -1,0 +1,25 @@
+# RFNM ADS-L transceiver (adsld, EASA ADS-L 4 SRD-860 M-band: 868.2 / 868.4 MHz).
+# Managed by appd (single LA9310 RX consumer - mutually exclusive with the other RF apps).
+# Installed disabled: appd starts it with `systemctl start`; it is never `systemctl enable`d
+# (matches rfnm-ais / rfnm-lora). Optional flags live in /rfnm/apps/adsl/adsl.conf as ADSL_ARGS.
+# TX stays off unless BOTH /rfnm/board.conf TX_ALLOWED permits it AND ADSL_ARGS passes --tx 1.
+[Unit]
+Description=RFNM ADS-L transceiver (adsld, traffic JSON on 127.0.0.1:7693 behind nginx /api/app/adsl/)
+After=network.target
+
+[Service]
+Type=simple
+# Antenna and gain belong to the Apps top-bar control: appd writes them to rf.conf with the
+# manifest's "ADSL" prefix. adsl.conf (ADSL_ARGS) is for everything else and comes last.
+Environment=ADSL_ANT=sma_a ADSL_GAIN=12
+EnvironmentFile=-/rfnm/apps/rf.conf
+EnvironmentFile=-/rfnm/apps/adsl/adsl.conf
+ExecStart=/rfnm/apps/adsl/adsld --antenna ${ADSL_ANT} --gain ${ADSL_GAIN} $ADSL_ARGS
+Restart=on-failure
+RestartSec=3
+Nice=-5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

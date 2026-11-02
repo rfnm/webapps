@@ -12,6 +12,7 @@ by `appd` from each app's manifest — see the `webgui` repo's `API.md` for the 
 | dir | daemon | what it does |
 |---|---|---|
 | `common/` | — | The shared daemon layer: `rfnm_httpd` (embedded HTTP server), `rfnm_json` (JSON reader/writer), `rfnm_boardconf` (`/rfnm/board.conf` parsing, TX policy). Apps compile these in directly. |
+| `adsld/` | `adsld` | ADS-L 4 SRD-860 (EASA Issue 2) transceiver with live map: both 868 MHz channels from one 2 MSps capture, Traffic and Status decode, traffic table, GFSK beacon TX (off by default, board and `--tx` gated). |
 | `aisd/` | `aisd` | RX-only marine AIS receiver: one wideband capture over the librfnm local transport, per-channel DDCs, NEON GMSK demod with a fixed-phase decoder bank, HDLC/CRC link layer → standard NMEA **AIVDM** sentences + decoded ship info. |
 | `cellsyncd/` | `cellsyncd` | LTE-disciplined oscillator: acquires and tracks surrounding macro cells (PSS/SSS + CRS phase, RX-only, no SIM) and steers the board's Si5510 reference DCO in 0.1 ppb steps — GPSDO-grade frequency without a sky view. |
 | `clockgend/` | `clockgend` | Si5510 OUT9 signal generator on the REF CLK OUT connector, driven through the kernel's `rfnm_set_siggen_freq` sysfs knob (1 MHz–200.099 MHz on a 1 kHz grid). Also reports external-reference / reference-lock status. |
