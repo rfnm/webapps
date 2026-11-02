@@ -116,9 +116,10 @@ address is drawn at random at every start.
 `POST /config {"tx":false}` stops the transmitter. `{"tx":true}` restarts it only if the daemon
 was started with TX allowed.
 
-There is no timed arm: once the gates are open, the beacon runs until it is stopped. There is no
-compile-time timed arm. `--power` defaults to 10 dBm and is capped at compile time by `ADSLD_TX_HARD_CAP_DBM`, 14 dBm,
-then by the device to the channel's range. Neither limit enforces the 14 dBm ERP of the M-band.
+There is no timed arm: once the gates are open, the beacon runs until it is stopped. `--power`
+defaults to 10 dBm and is capped at compile time by `ADSLD_TX_HARD_CAP_DBM`, 14 dBm, then by the
+device to the channel's range. Output power is not calibrated, so the cap is a setting and does not
+prove the 14 dBm ERP of the M-band.
 
 **Transmitting ADS-L is not a toy.** Injecting fabricated aircraft into a live conspicuity
 network is a flight-safety matter. Use a conducted setup with attenuation, or check your local
