@@ -1,0 +1,7 @@
+{ "id": "adsl", "title": "ADS-L",
+  "desc": "ADS-L 4 SRD-860 transceiver (EASA Issue 2): 868.2 / 868.4 MHz traffic map. RX-only unless adsl.conf passes --tx 1.",
+  "unit": "rfnm-adsl", "radio": "rx", "settle_s": 2, "idle_stop_s": 180,
+  "api": { "port": 7693, "version": 1 },
+  "rf": { "prefix": "ADSL", "antenna": "sma_a", "gain": 12, "agc": false },
+  "data": [ { "kind": "adsl-json", "proto": "http", "port": 80, "dir": "out", "path": "/api/app/adsl/traffic", "desc": "decoded traffic table (JSON, poll)" } ],
+  "gui": { "panel": "adsl", "order": 35 } }

@@ -1,4 +1,5 @@
 *.o
+adsld/adsld
 aisd/aisd
 cellsyncd/cellsyncd
 cellsyncd/tools/dco_cal

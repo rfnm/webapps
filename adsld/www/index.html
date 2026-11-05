@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!-- adsld map web UI. Served by the daemon itself (websrv.cpp); self-contained: Leaflet is
+     vendored under vendor/ (BSD-2, see vendor/LICENSE-vendor), only the OSM map tiles come from
+     the internet and the page degrades to a plain grid without them. Plain JS, no build step.
+     MPL-2.0 like the rest of adsld. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADS-L map</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="topbar">
+	<h1>ADS-L map</h1>
+	<section id="status" aria-label="Radio status">
+		<span class="stat"><span class="k">link</span>
+			<span class="v"><span id="conn" class="dot"></span><span id="connlabel">connecting</span></span></span>
+		<span class="stat"><span class="k">rx</span><b id="st-rxok">–</b></span>
+		<span class="stat"><span class="k">unknown</span><b id="st-unknown">–</b></span>
+		<span class="stat"><span class="k">aircraft</span><b id="st-traffic">–</b></span>
+		<span class="stat"><span class="k">868.2</span><b id="st-ch0">–</b></span>
+		<span class="stat"><span class="k">868.4</span><b id="st-ch1">–</b></span>
+		<span class="stat" id="st-txwrap" hidden><span class="k">tx</span><b id="st-tx">–</b></span>
+	</section>
+	<button id="themebtn" title="toggle light/dark">◐</button>
+</header>
+<main>
+	<div id="map"><div id="offline-badge" hidden>no map tiles — offline grid</div></div>
+	<aside id="side">
+		<section id="own">
+			<h2>Own station</h2>
+			<table>
+				<tr><td>address</td><td id="v-addr">–</td></tr>
+				<tr><td>position</td><td id="v-pos">–</td></tr>
+			</table>
+			<label for="f-emg">Emergency status</label>
+			<div class="row">
+				<select id="f-emg">
+					<option value="0">0 undefined</option>
+					<option value="1">1 no emergency</option>
+					<option value="2">2 general emergency</option>
+					<option value="3">3 lifeguard / medical</option>
+					<option value="4">4 no communications</option>
+					<option value="5">5 unlawful interference</option>
+					<option value="6">6 downed aircraft</option>
+				</select>
+				<button id="b-emg" type="button">Set</button>
+			</div>
+			<div id="emg-msg" class="pmsg" role="status" hidden></div>
+		</section>
+		<div id="listhead">
+			<span>Traffic</span>
+			<span id="sorters">sort:
+				<button id="sort-age" class="sorton">age</button>
+				<button id="sort-rssi">rssi</button>
+			</span>
+		</div>
+		<ul id="aclist"></ul>
+		<div id="detail" hidden></div>
+	</aside>
+</main>
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
