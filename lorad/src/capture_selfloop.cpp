@@ -61,7 +61,7 @@ int run_selfloop(double center_hz, double offset_hz, double rate_hz, double out_
                  int gain_db, int tx_power_dbm, int timeout_s) {
 	phy_params p;
 	p.sf = 11; p.cr = 1; p.ldro = false; p.has_crc = true; p.sync = 0x2B; p.preamble_len = 8;   // Meshtastic LongFast
-	const bool bw250 = true;
+	const double bw_hz = 250e3;
 	const std::vector<uint8_t> payload = { 'R','F','N','M','-','L','O','R','A','-','L','O','O','P' };
 
 	int os = (int)llround(rate_hz / out_rate_hz);
@@ -135,7 +135,7 @@ int run_selfloop(double center_hz, double offset_hz, double rate_hz, double out_
 	});
 
 	ddc dc(rate_hz, out_rate_hz, offset_hz);
-	channel_receiver crx(center_hz + offset_hz, p.sync, (1u << p.sf), bw250, [&](const rx_packet &pk) {
+	channel_receiver crx(center_hz + offset_hz, p.sync, (1u << p.sf), bw_hz, [&](const rx_packet &pk) {
 		got++;
 		printf("selfloop: *** DECODED LoRa packet #%d  SF%d CR4/%d crc_present=%d crc_ok=%d len=%zu payload=\"%.*s\" ***\n",
 		       got.load(), pk.sf, pk.cr + 4, pk.crc_present, pk.crc_ok, pk.payload.size(),

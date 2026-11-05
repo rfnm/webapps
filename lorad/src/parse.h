@@ -10,8 +10,14 @@
 namespace lorad {
 
 std::string lorawan_info(const std::vector<uint8_t> &p);
+// a private channel: frames with this hash decrypt with this key, all others with the default
+void meshtastic_set_channel(uint8_t hash, const uint8_t psk[16]);
 std::string meshtastic_info(const std::vector<uint8_t> &p);
 std::string hex_string(const std::vector<uint8_t> &p);
+
+// true for non-empty valid UTF-8 without control chars (tab/newline/CR excepted): the
+// only text allowed inline in the /packets JSON
+bool clean_text(const std::vector<uint8_t> &v);
 
 // format a 32-bit node number as Meshtastic renders it: "!xxxxxxxx" (or "^all" for broadcast)
 std::string mesh_node_string(uint32_t n);

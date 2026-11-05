@@ -19,8 +19,12 @@ namespace lorad {
 class ddc {
 public:
 	// in_rate -> out_rate must divide evenly; offset_hz is the channel offset from
-	// the capture center (positive == channel above center)
-	ddc(double in_rate, double out_rate, double offset_hz) {
+	// the capture center (positive == channel above center). cutoff is the lowpass edge
+	// as a fraction of out_rate; taps_per_decim sets the filter length. The defaults are
+	// the critically sampled LoRa channel. An edge beyond BW / 2 keeps a chirp that crystal
+	// error shifted past the channel edge: picked at fs == BW, the excess folds onto the
+	// same dechirped bin.
+	ddc(double in_rate, double out_rate, double offset_hz, double cutoff = 0.45, int taps_per_decim = 4) {
 		decim_ = (int)llround(in_rate / out_rate);
 		phase_ = cf(1.0f, 0.0f);
 		double w = -2.0 * M_PI * offset_hz / in_rate;
@@ -29,10 +33,10 @@ public:
 		rot3_ = rot2_ * rot_;
 		rot4_ = rot2_ * rot2_; // 4-step rotor for the NEON down-mix
 
-		// windowed-sinc lowpass, cutoff at 0.45 * out_rate, 4 * decim taps
-		int taps = 4 * decim_ | 1;
+		// windowed-sinc lowpass
+		int taps = taps_per_decim * decim_ | 1;
 		taps_.resize(taps);
-		double fc = 0.45 * out_rate / in_rate;
+		double fc = cutoff * out_rate / in_rate;
 		double sum = 0;
 		for(int i = 0; i < taps; i++) {
 			double m = i - (taps - 1) / 2.0;

@@ -1,0 +1,7 @@
+{ "id": "lora", "title": "Lora", "desc": "RX-only LoRa sniffer (8-channel LoRaWAN dechirp-FFT scan) and Meshtastic / MeshCore mesh visualizer - one daemon, switchable mode.",
+  "unit": "rfnm-lora", "radio": "rx", "settle_s": 5, "idle_stop_s": 180,
+  "api": { "port": 7684 },
+  "rf": { "prefix": "LORA", "antenna": "sma_a", "gain": 30, "agc": true },
+  "config": [ { "key": "mode", "env": "LORAD_MODE", "choices": ["lorawan", "meshtastic", "meshcore"], "restart": true },
+              { "key": "region", "env": "LORAD_REGION", "choices": ["us915", "eu868"], "restart": true } ],
+  "gui": { "panel": "lora", "order": 40 } }

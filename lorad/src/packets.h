@@ -1,7 +1,9 @@
 // lorad: packet ring buffer + JSON serialization for the HTTP API. The GUI polls
 // /lorapi/packets and expects, per packet: {time,epoch_ms,freq,bw,sf,cr,snr,len,
 // crc_present,crc_ok,info,hex} and, for Meshtastic frames, a structured "mesh":{from,
-// to,id,hop_limit,hop_start,portnum,port,text} object alongside the flat info/hex.
+// to,id,hop_limit,hop_start,portnum,port,text} object alongside the flat info/hex. MeshCore
+// frames carry a "meshcore":{type,route,hops,path,hash,pubkey,name,...} object instead
+// (see meshcore_json()).
 #pragma once
 
 #include <cstdio>
@@ -41,6 +43,8 @@ struct packet_entry {
 	double m_lat = 0, m_lon = 0;
 	bool m_has_alt = false;
 	int m_alt = 0;
+
+	std::string meshcore_json; // serialized "meshcore" object, empty if none
 };
 
 class packet_ring {
@@ -111,6 +115,9 @@ public:
 					}
 				}
 				out += "}";
+			}
+			if(!p.meshcore_json.empty()) {
+				out += ",\"meshcore\":" + p.meshcore_json;
 			}
 			out += "}";
 			first = false;

@@ -51,7 +51,7 @@ static std::vector<cf> synth_frame_os(const phy_params &p, const std::vector<uin
 int run_selfloop_offline(double snr_db, double cfo_hz) {
 	phy_params p;
 	p.sf = 11; p.cr = 1; p.ldro = false; p.has_crc = true; p.sync = 0x2B; p.preamble_len = 8;   // Meshtastic LongFast
-	const bool bw250 = true;
+	const double bw_hz = 250e3;
 	const std::vector<uint8_t> payload = { 'R','F','N','M','-','L','O','R','A','-','L','O','O','P' };
 	const double rate = 2e6, out_rate = 250e3, offset = 400e3;   // RFNM capture rate, channel BW, +offset off DC
 	const int os = (int)llround(rate / out_rate);
@@ -88,7 +88,7 @@ int run_selfloop_offline(double snr_db, double cfo_hz) {
 	// ---- RX: the exact live decode chain (ddc down-convert+decimate -> channel_receiver) ----
 	int got = 0; std::vector<uint8_t> rxpl; bool rx_crc = false; int rx_sf = 0, rx_cr = 0;
 	ddc dc(rate, out_rate, offset);
-	channel_receiver crx(906.875e6, p.sync, (1u << p.sf), bw250, [&](const rx_packet &pk) {
+	channel_receiver crx(906.875e6, p.sync, (1u << p.sf), bw_hz, [&](const rx_packet &pk) {
 		got++; rxpl = pk.payload; rx_crc = pk.crc_ok; rx_sf = pk.sf; rx_cr = pk.cr;
 	});
 	std::vector<cf> base;
